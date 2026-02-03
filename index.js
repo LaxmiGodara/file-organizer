@@ -1,60 +1,134 @@
 import fs from "fs";
 import path from "path";
 
+// Absolute path to Downloads folder
 const downloadsPath = "C:/Users/admin/Downloads";
 
+const logFileName = `log_${getTodayDate()}.log`;
+
+// Log file path
+const logFilePath = path.join(downloadsPath, logFileName);
+
 const FILE_CATEGORIES = {
-  Image: [".jpg", "jpeg", ".png", ".gif"],
+  Images: [".jpg", ".jpeg", ".png", ".gif"],
   Documents: [".pdf", ".docx", ".txt"],
   Videos: [".mp4", ".mkv", ".avi"],
   Archives: [".zip", ".rar"],
 };
 
-fs.readdir(downloadsPath, (error, files) => {
-  if (error) {
-    console.log("error reading the folder:", error);
-    return;
-  }
+function getTodayDate() {
+  const now = new Date();
 
-  console.log("Classifying files:\n");
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const year = now.getFullYear();
 
-  files.forEach((file) => {
-    const fullPath = path.join(downloadsPath, file);
+  return `${day}${month}${year}`;
+}
 
-    //getting metadata
-    fs.stat(fullPath, (err, stats) => {
-      if (err) {
-        console.log(`Cannot access ${file}`);
+// This function writes error messages to error.log
+function logError(message) {
+  // Creating timestamp
+  const timestamp = new Date().toISOString();
+
+  // Final log format
+  const logEntry = `[${timestamp}] ${message}\n`;
+
+  // Append log entry to file
+  fs.appendFile(logFilePath, logEntry, (err) => {
+    if (err) {
+      // If logging fails
+      console.log("CRITICAL: Unable to write to error.log", err);
+    }
+  });
+}
+
+// fs.watch listens for file system changes
+fs.watch(downloadsPath, (eventType, filename) => {
+  if (filename === "error.log") return;
+  if (filename.endsWith(".crdownload")) return;
+
+  if (!filename) return;
+
+  const sourcePath = path.join(downloadsPath, filename);
+
+  setTimeout(() => {
+    fs.stat(sourcePath, (statErr, stats) => {
+      if (statErr) {
+        logError(` Cannot access ${filename}`);
         return;
       }
-      //ignoring folders
-      if (stats.isDirectory()) {
-        console.log(`${file} is FOLDER (ignored for safety)`);
-      }
-      //ignoring empty files
+
+      // Ignoring  folders
+      if (stats.isDirectory()) return;
+
+      // Ignoring empty files
       if (stats.size === 0) {
-        console.log(`${file} ,  0 bites file(ignored, possibly incomplete)`);
+        logError(` Empty  file ${filename}`);
+        return;
       }
 
-      //Extracting file extension
-      const extension = path.extname(file).toLowerCase();
+      // Extracting file extension
+      const extension = path.extname(filename).toLowerCase();
 
-      let detectedCategory = null;
+      // Determining category
+      let category = null;
 
-      for (const category in FILE_CATEGORIES) {
-        if (FILE_CATEGORIES[category].includes(extension)) {
-          detectedCategory = category;
+      // Loop through configuration to find matching category
+      for (const key in FILE_CATEGORIES) {
+        if (FILE_CATEGORIES[key].includes(extension)) {
+          category = key;
           break;
         }
       }
 
-      if (!detectedCategory) {
-        console.log(`${file}, unknown type`);
+      // Ignoring  unknown file types
+      if (!category) {
+        return;
       }
 
-      console.log(`${file} , Vaild File, size:${stats.size} bytes`);
+      // Building  destination folder path
+      const destinationDir = path.join(downloadsPath, category);
 
-      console.log(`${file}, Category: ${detectedCategory}`);
+      // Building final destination file path
+      const destinationPath = path.join(destinationDir, filename);
+
+      // Skipping  if file is already in correct place
+      if (sourcePath === destinationPath) return;
+
+      // LOGGING ACTION
+      console.log(`Moving ${filename} → ${category}/`);
+
+      // Creating destination folder if it doesn't exist
+      fs.mkdir(destinationDir, { recursive: true }, (mkdirErr) => {
+        // CRITICAL ERROR
+        if (mkdirErr) {
+          logError(`CRITICAL: Failed to create folder ${category}`);
+          return;
+        }
+
+        // Copying  file
+        fs.copyFile(sourcePath, destinationPath, (copyErr) => {
+          // CRITICAL ERROR
+          if (copyErr) {
+            logError(`CRITICAL: Failed to copy ${filename}`);
+            return;
+          }
+
+          // Deleting  original
+          fs.unlink(sourcePath, (deleteErr) => {
+            // CRITICAL ERROR (data duplication risk)
+            if (deleteErr) {
+              logError(
+                `CRITICAL: Copied but failed to delete original ${filename}`,
+              );
+              return;
+            }
+
+            console.log(`Successfully moved: ${filename}`);
+          });
+        });
+      });
     });
-  });
+  }, 3000);
 });
