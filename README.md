@@ -1,6 +1,6 @@
 # File Organizer (Node.js)
 
-A safe and automatic file organizer that watches the  Downloads folder
+A safe and automatic file organizer that watches the Downloads folder
 and organizes files into folders based on file type.
 
 ---
@@ -14,7 +14,7 @@ and organizes files into folders based on file type.
 
 ---
 
-##  What This Project Does
+## What This Project Does
 
 - Watches the Downloads folder in real time
 - Detects new, fully downloaded files
@@ -25,10 +25,34 @@ and organizes files into folders based on file type.
 
 ---
 
-##  Requirements
+## Performance Considerations
+
+This tool is designed for correctness and safety first.
+
+Potential performance touchpoints:
+
+- Large Downloads folders
+- High-frequency file events
+- Long-running watch mode
+
+These were consciously accepted trade-offs to avoid premature optimization.
+
+
+## Known Limitations & Trade-offs
+
+- Files are categorized based on extension only.
+- The tool prioritizes safety and sequential processing over performance.
+- Designed primarily for a single OS environment.
+- Manual testing was used to simulate real file system behavior.
+
+These trade-offs were intentional to keep the system reliable and understandable.
+
+## Requirements
 
 - Node.js (version 18 or above recommended)
 
 Check Node version:
+
 ```bash
 node -v
+```
