@@ -37,7 +37,6 @@ Potential performance touchpoints:
 
 These were consciously accepted trade-offs to avoid premature optimization.
 
-
 ## Known Limitations & Trade-offs
 
 - Files are categorized based on extension only.
@@ -56,3 +55,17 @@ Check Node version:
 ```bash
 node -v
 ```
+
+## How to Run the App (CLI Commands Explained)
+
+This app is fully controlled using command-line flags.  
+You **do not need to change any code** to switch modes.
+
+| What you want  | Command                               | Purpose (what this command really does)                                                                                                                        |
+| -------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Safe watch** | `npm run dev -- -- --watch`           | Keeps the app running continuously and listens for new files, but never touches your files. It only pretends to organize them so you can safely test behavior. |
+| **Real watch** | `npm run dev -- -- --watch --execute` | Turns the app into a live auto-organizer. It keeps running and actually moves files the moment they appear in Downloads.                                       |
+| **Safe once**  | `npm run dev`                         | Scans the Downloads folder one time, shows what would be organized, then exits immediately. Nothing is moved.                                                  |
+| **Real once**  | `npm run dev -- -- --execute`         | Performs a one-time real cleanup. Organizes all current files in Downloads and then shuts down.                                                                |
+
+---
